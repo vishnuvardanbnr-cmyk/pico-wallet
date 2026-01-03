@@ -49,7 +49,7 @@ function getAllFiles(dir: string, baseDir: string = dir): { path: string; conten
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   
   const ignoreDirs = ['node_modules', '.git', 'dist', 'android', '.replit', '.cache', '.config', '.upm', '.local', 'attached_assets'];
-  const ignoreFiles = ['.replit', 'replit.nix', '.gitignore', 'package-lock.json'];
+  const ignoreFiles = ['.replit', 'replit.nix', '.gitignore'];
   
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
