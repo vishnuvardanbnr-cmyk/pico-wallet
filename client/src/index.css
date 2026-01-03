@@ -1,0 +1,778 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* LIGHT MODE */
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .08);
+  --background: 0 0% 100%;
+  --foreground: 240 5% 12%;
+  --border: 240 4% 92%;
+  --card: 0 0% 98%;
+  --card-foreground: 240 5% 12%;
+  --card-border: 240 4% 94%;
+  --sidebar: 240 3% 96%;
+  --sidebar-foreground: 240 5% 12%;
+  --sidebar-border: 240 4% 92%;
+  --sidebar-primary: 217 91% 35%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 5% 88%;
+  --sidebar-accent-foreground: 240 5% 12%;
+  --sidebar-ring: 217 91% 35%;
+  --popover: 0 0% 96%;
+  --popover-foreground: 240 5% 12%;
+  --popover-border: 240 4% 92%;
+  --primary: 217 91% 35%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 5% 90%;
+  --secondary-foreground: 240 5% 12%;
+  --muted: 240 5% 92%;
+  --muted-foreground: 240 4% 40%;
+  --accent: 220 15% 94%;
+  --accent-foreground: 240 5% 12%;
+  --destructive: 0 72% 40%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 240 6% 75%;
+  --ring: 217 91% 35%;
+  --chart-1: 217 91% 35%;
+  --chart-2: 173 58% 35%;
+  --chart-3: 280 65% 40%;
+  --chart-4: 32 95% 45%;
+  --chart-5: 340 75% 42%;
+  --font-sans: Inter, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: .5rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(240 4% 20% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(240 4% 20% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(240 4% 20% / 0.00), 0px 1px 2px -1px hsl(240 4% 20% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(240 4% 20% / 0.00), 0px 1px 2px -1px hsl(240 4% 20% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(240 4% 20% / 0.00), 0px 2px 4px -1px hsl(240 4% 20% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(240 4% 20% / 0.00), 0px 4px 6px -1px hsl(240 4% 20% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(240 4% 20% / 0.00), 0px 8px 10px -1px hsl(240 4% 20% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(240 4% 20% / 0.00);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+/* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 9;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+  --background: 240 6% 8%;
+  --foreground: 0 0% 98%;
+  --border: 240 5% 16%;
+  --card: 240 5% 10%;
+  --card-foreground: 0 0% 98%;
+  --card-border: 240 5% 13%;
+  --sidebar: 240 4% 12%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-border: 240 5% 16%;
+  --sidebar-primary: 217 91% 45%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4% 16%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-ring: 217 91% 45%;
+  --popover: 240 5% 14%;
+  --popover-foreground: 0 0% 98%;
+  --popover-border: 240 5% 18%;
+  --primary: 217 91% 35%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4% 18%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 3% 65%;
+  --accent: 220 12% 18%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 35%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 240 5% 30%;
+  --ring: 217 91% 45%;
+  --chart-1: 217 91% 65%;
+  --chart-2: 173 58% 60%;
+  --chart-3: 280 65% 65%;
+  --chart-4: 32 95% 60%;
+  --chart-5: 340 75% 62%;
+  --shadow-2xs: 0px 2px 0px 0px hsl(240 5% 5% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(240 5% 5% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(240 5% 5% / 0.00), 0px 1px 2px -1px hsl(240 5% 5% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(240 5% 5% / 0.00), 0px 1px 2px -1px hsl(240 5% 5% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(240 5% 5% / 0.00), 0px 2px 4px -1px hsl(240 5% 5% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(240 5% 5% / 0.00), 0px 4px 6px -1px hsl(240 5% 5% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(240 5% 5% / 0.00), 0px 8px 10px -1px hsl(240 5% 5% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(240 5% 5% / 0.00);
+
+/* Fallback for older browsers */
+  --sidebar-primary-border: hsl(var(--sidebar-primary));
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --sidebar-accent-border: hsl(var(--sidebar-accent));
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-inset-left: env(safe-area-inset-left, 0px);
+    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+/**
+ * Using the elevate system.
+ * Automatic contrast adjustment.
+ *
+ * <element className="hover-elevate" />
+ * <element className="active-elevate-2" />
+ *
+ * // Using the tailwind utility when a data attribute is "on"
+ * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
+ * // Or manually controlling the toggle state
+ * <element className="toggle-elevate toggle-elevated" />
+ *
+ * Elevation systems have to handle many states.
+ * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
+ * - toggled or not
+ * - focused or not (this is not handled with these utilities)
+ *
+ * Even without handling focused or not, this is six possible combinations that
+ * need to be distinguished from eachother visually.
+ */
+@layer utilities {
+
+  /* Hide ugly search cancel button in Chrome until we can style it properly */
+  input[type="search"]::-webkit-search-cancel-button {
+    @apply hidden;
+  }
+
+  /* Placeholder styling for contentEditable div */
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+  }
+
+  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
+   * buttons/badges can remove the automatic brightness adjustment on interactions
+   * and program their own. */
+  .no-default-hover-elevate {}
+
+  .no-default-active-elevate {}
+
+
+  /**
+   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
+   * This way they can stack/compound. Both will overlap the parent's borders!
+   * So borders will be automatically adjusted both on toggle, and hover/active,
+   * and they will be compounded.
+   */
+  .toggle-elevate::before,
+  .toggle-elevate-2::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: -1;
+    /* sits behind content but above backdrop */
+  }
+
+  .toggle-elevate.toggle-elevated::before {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.toggle-elevate::before {
+    inset: -1px;
+  }
+
+  /* Does not work on elements with overflow:hidden! */
+  .hover-elevate:not(.no-default-hover-elevate),
+  .active-elevate:not(.no-default-active-elevate),
+  .hover-elevate-2:not(.no-default-hover-elevate),
+  .active-elevate-2:not(.no-default-active-elevate) {
+    position: relative;
+    z-index: 0;
+  }
+
+  .hover-elevate:not(.no-default-hover-elevate)::after,
+  .active-elevate:not(.no-default-active-elevate)::after,
+  .hover-elevate-2:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:not(.no-default-active-elevate)::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0px;
+    /*border-radius: inherit;   match rounded corners */
+    border-radius: inherit;
+    z-index: 999;
+    /* sits in front of content */
+  }
+
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-1);
+  }
+
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
+  .active-elevate-2:active:not(.no-default-active-elevate)::after {
+    background-color: var(--elevate-2);
+  }
+
+  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
+  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+    inset: -1px;
+  }
+}
+
+/* ============================================
+   UNIQUE GLASSMORPHIC DESIGN SYSTEM
+   Animated mesh gradients, holographic effects
+   ============================================ */
+
+/* Animated Mesh Gradient Background */
+@keyframes mesh-gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes aurora-shift {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.3;
+  }
+  33% {
+    transform: rotate(120deg) scale(1.1);
+    opacity: 0.5;
+  }
+  66% {
+    transform: rotate(240deg) scale(0.9);
+    opacity: 0.4;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(168, 85, 247, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 60px rgba(168, 85, 247, 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes holographic {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(15deg);
+  }
+  100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes border-dance {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.5);
+  }
+  33% {
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+  66% {
+    border-color: rgba(236, 72, 153, 0.5);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+/* Mesh Gradient Background Container */
+.mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.mesh-bg::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: 
+    radial-gradient(ellipse at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 40% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 70%, rgba(59, 130, 246, 0.12) 0%, transparent 50%);
+  animation: aurora-shift 20s ease-in-out infinite;
+}
+
+.mesh-bg::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: 
+    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+  animation: aurora-shift 25s ease-in-out infinite reverse;
+}
+
+.dark .mesh-bg::before {
+  background: 
+    radial-gradient(ellipse at 20% 30%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 40% 80%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+}
+
+.dark .mesh-bg::after {
+  background: 
+    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+}
+
+/* Glassmorphic Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.dark .glass-card {
+  background: rgba(30, 30, 40, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .glass-card:hover {
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Holographic Shimmer Effect */
+.holo-shimmer {
+  position: relative;
+  overflow: visible;
+}
+
+.holo-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.dark .holo-shimmer::before {
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 75%
+  );
+  background-size: 200% 100%;
+}
+
+/* Glowing Border Effect */
+.glow-border {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.4),
+    rgba(168, 85, 247, 0.4),
+    rgba(236, 72, 153, 0.4),
+    rgba(99, 102, 241, 0.4)
+  );
+  background-size: 300% 300%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: holographic 8s ease infinite;
+  filter: blur(3px);
+  opacity: 0.6;
+}
+
+.glow-border:hover::before {
+  opacity: 0.9;
+  filter: blur(4px);
+}
+
+/* Holographic Button */
+.holo-button {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.9),
+    rgba(139, 92, 246, 0.9),
+    rgba(168, 85, 247, 0.9)
+  );
+  background-size: 200% 200%;
+  animation: holographic 6s ease infinite;
+  border: none;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 4px 20px rgba(99, 102, 241, 0.3),
+    0 2px 10px rgba(168, 85, 247, 0.2);
+  transition: all 0.3s ease;
+}
+
+.holo-button:hover {
+  box-shadow: 
+    0 6px 30px rgba(99, 102, 241, 0.4),
+    0 4px 15px rgba(168, 85, 247, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Balance Display with Glow */
+.balance-glow {
+  text-shadow: 
+    0 0 20px rgba(99, 102, 241, 0.5),
+    0 0 40px rgba(168, 85, 247, 0.3);
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.dark .balance-glow {
+  text-shadow: 
+    0 0 30px rgba(99, 102, 241, 0.6),
+    0 0 60px rgba(168, 85, 247, 0.4);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)) 0%,
+    rgba(139, 92, 246, 1) 50%,
+    rgba(236, 72, 153, 1) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: holographic 8s ease infinite;
+  background-size: 200% 200%;
+}
+
+/* Floating Animation */
+.float-animation {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Orbital Chain Selector Styles */
+.orbital-chain {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.orbital-chain:hover {
+  transform: scale(1.15);
+}
+
+.orbital-chain.selected {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Ambient Particles */
+@keyframes particle-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) rotate(90deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-10px) translateX(-5px) rotate(180deg);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(-25px) translateX(15px) rotate(270deg);
+    opacity: 0.5;
+  }
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.6), rgba(168, 85, 247, 0.6));
+  border-radius: 50%;
+  animation: particle-float 8s ease-in-out infinite;
+}
+
+/* Asset Card Hover Glow */
+.asset-card-glow {
+  transition: all 0.3s ease;
+}
+
+.asset-card-glow:hover {
+  box-shadow: 
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 8px 25px rgba(99, 102, 241, 0.15),
+    0 4px 10px rgba(168, 85, 247, 0.1);
+}
+
+.dark .asset-card-glow:hover {
+  box-shadow: 
+    0 0 0 1px rgba(99, 102, 241, 0.3),
+    0 8px 30px rgba(99, 102, 241, 0.2),
+    0 4px 15px rgba(168, 85, 247, 0.15);
+}
+
+/* Neon Accent Line */
+.neon-accent {
+  position: relative;
+}
+
+.neon-accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.8),
+    rgba(168, 85, 247, 0.8),
+    transparent
+  );
+  animation: shimmer 2s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+/* Dashboard Hero Balance Section */
+.hero-balance {
+  position: relative;
+  padding: 2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.05) 0%,
+    rgba(168, 85, 247, 0.05) 50%,
+    rgba(236, 72, 153, 0.05) 100%
+  );
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.hero-balance::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+.dark .hero-balance {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.1) 0%,
+    rgba(168, 85, 247, 0.08) 50%,
+    rgba(236, 72, 153, 0.06) 100%
+  );
+}
+
+/* Chain Icon Ring */
+.chain-ring {
+  position: relative;
+}
+
+.chain-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(99, 102, 241, 0.6),
+    rgba(168, 85, 247, 0.6),
+    rgba(236, 72, 153, 0.6),
+    rgba(99, 102, 241, 0.6)
+  );
+  animation: border-dance 4s linear infinite;
+  z-index: -1;
+}
+
+/* Subtle Grain Texture Overlay */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+.dark .grain-overlay {
+  opacity: 0.04;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
