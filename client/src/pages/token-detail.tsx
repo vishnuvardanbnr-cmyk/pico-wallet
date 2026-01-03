@@ -89,7 +89,7 @@ export default function TokenDetail() {
   const { chainId, tokenId } = params;
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const { chains, visibleWallets, customTokens, topAssets, refreshWalletBalance, tokenBalances, customTokenBalances } = useWallet();
+  const { chains, wallets, visibleWallets, customTokens, topAssets, refreshWalletBalance, tokenBalances, customTokenBalances } = useWallet();
   
   const [prices, setPrices] = useState<PriceData>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -97,8 +97,18 @@ export default function TokenDetail() {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [pendingTransactions, setPendingTransactions] = useState<PendingTransaction[]>([]);
 
+  // Get wallet ID from URL params
+  const searchParams = new URLSearchParams(window.location.search);
+  const walletIdParam = searchParams.get('wallet');
+
   const chain = chains.find(c => c.id === chainId);
-  const wallet = visibleWallets.find(w => w.chainId === chainId);
+  // Use wallet ID from URL if provided (search in ALL wallets, not just visible ones)
+  // Fall back to first visible wallet for chain if no wallet ID or not found
+  const wallet = walletIdParam 
+    ? wallets.find(w => w.id === walletIdParam) || visibleWallets.find(w => w.chainId === chainId)
+    : visibleWallets.find(w => w.chainId === chainId);
+  
+  console.log("[TokenDetail] walletIdParam:", walletIdParam, "wallet found:", wallet?.id, "wallet address:", wallet?.address, "all wallets count:", wallets.length);
   
   const isNativeToken = tokenId === "native" || tokenId === chain?.symbol;
   
