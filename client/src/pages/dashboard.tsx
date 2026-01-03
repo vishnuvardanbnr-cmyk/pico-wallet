@@ -354,7 +354,7 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
-  const { isConnected, isUnlocked, chains, wallets, refreshBalances, refreshWalletBalance, topAssets, enabledAssetIds, isLoadingAssets, refreshTopAssets, createAdditionalWallet, createWalletWithNewSeed, walletMode, isLoading, selectedAccountIndex, setSelectedAccountIndex, availableAccounts, visibleWallets, customTokens, balanceCacheStatus, hasSoftWalletSetup, hasHardWalletSetup, tokenBalances, customTokenBalances, setShowPinModal, setPinAction, setPendingWalletGroupId, isWalletGroupUnlocked, setPendingWalletAccess, renameWallet } = useWallet();
+  const { isConnected, isUnlocked, chains, wallets, refreshBalances, refreshWalletBalance, topAssets, enabledAssetIds, isLoadingAssets, refreshTopAssets, createAdditionalWallet, createWalletWithNewSeed, walletMode, isLoading, selectedAccountIndex, setSelectedAccountIndex, availableAccounts, visibleWallets, customTokens, balanceCacheStatus, hasSoftWalletSetup, hasHardWalletSetup, tokenBalances, customTokenBalances, showPinModal, setShowPinModal, setPinAction, setPendingWalletGroupId, isWalletGroupUnlocked, setPendingWalletAccess, renameWallet } = useWallet();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
@@ -1068,7 +1068,14 @@ export default function Dashboard() {
     const PRIMARY_WALLET_GROUP = "primary";
     const walletGroupId = wallet.walletGroupId || PRIMARY_WALLET_GROUP;
     
-    console.log("[handleSelectWallet] wallet:", wallet.id, "walletGroupId:", wallet.walletGroupId, "isUnlocked:", isWalletGroupUnlocked(wallet.walletGroupId));
+    console.log("[handleSelectWallet] wallet:", wallet.id, "walletGroupId:", wallet.walletGroupId, "isUnlocked:", isWalletGroupUnlocked(wallet.walletGroupId), "pinModalOpen:", showPinModal);
+    
+    // If PIN modal is already open, don't allow switching to a different wallet
+    // This prevents accidental overwrites of the pending wallet access
+    if (showPinModal) {
+      console.log("[handleSelectWallet] PIN modal already open, ignoring wallet selection");
+      return;
+    }
     
     // Store current chain for callback
     const currentChain = selectedChain;
