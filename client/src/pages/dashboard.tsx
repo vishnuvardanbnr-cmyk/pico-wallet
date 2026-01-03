@@ -401,6 +401,42 @@ export default function Dashboard() {
   const [viewLevel, setViewLevel] = useState<ViewLevel>('chains');
   const [selectedChain, setSelectedChain] = useState<Chain | null>(null);
   const [selectedWallet, setSelectedWallet] = useState<WalletType | null>(null);
+  
+  // Debug: log when selectedWallet changes
+  useEffect(() => {
+    console.log("[Dashboard] selectedWallet changed:", selectedWallet?.id, "label:", selectedWallet?.label, "address:", selectedWallet?.address);
+  }, [selectedWallet]);
+  
+  // Persist selected wallet/chain to sessionStorage for navigation preservation
+  useEffect(() => {
+    if (selectedWallet && selectedChain) {
+      sessionStorage.setItem('dashboard_selectedWalletId', selectedWallet.id);
+      sessionStorage.setItem('dashboard_selectedChainId', selectedChain.id);
+      sessionStorage.setItem('dashboard_viewLevel', 'tokens');
+    }
+  }, [selectedWallet, selectedChain]);
+  
+  // Restore wallet/chain from sessionStorage on mount (handles history.back() navigation)
+  useEffect(() => {
+    if (wallets.length === 0 || chains.length === 0) return;
+    if (selectedWallet || selectedChain) return; // Already have selection, don't override
+    
+    const savedWalletId = sessionStorage.getItem('dashboard_selectedWalletId');
+    const savedChainId = sessionStorage.getItem('dashboard_selectedChainId');
+    const savedViewLevel = sessionStorage.getItem('dashboard_viewLevel');
+    
+    if (savedWalletId && savedChainId && savedViewLevel === 'tokens') {
+      const wallet = wallets.find(w => w.id === savedWalletId);
+      const chain = chains.find(c => c.id === savedChainId);
+      
+      if (wallet && chain) {
+        console.log("[Dashboard] Restoring from sessionStorage:", savedWalletId, "label:", wallet.label);
+        setSelectedChain(chain);
+        setSelectedWallet(wallet);
+        setViewLevel('tokens');
+      }
+    }
+  }, [wallets, chains, selectedWallet, selectedChain]);
 
   // WalletConnect Scanner State
   const [showWcScannerDialog, setShowWcScannerDialog] = useState(false);
@@ -663,7 +699,7 @@ export default function Dashboard() {
   
   // Restore navigation state from URL params
   useEffect(() => {
-    if (chains.length === 0 || visibleWallets.length === 0) return;
+    if (chains.length === 0 || wallets.length === 0) return;
     
     // Only process if URL params actually changed
     if (chainParam === lastUrlParams.chain && walletParam === lastUrlParams.wallet) return;
@@ -673,7 +709,8 @@ export default function Dashboard() {
       if (chain) {
         setSelectedChain(chain);
         if (walletParam) {
-          const wallet = visibleWallets.find(w => w.id === walletParam);
+          // Look up in ALL wallets, not just visibleWallets (which is filtered by accountIndex)
+          const wallet = wallets.find(w => w.id === walletParam);
           if (wallet) {
             setSelectedWallet(wallet);
             setViewLevel('tokens');
@@ -687,7 +724,7 @@ export default function Dashboard() {
     }
     // Update tracked params
     setLastUrlParams({ chain: chainParam, wallet: walletParam });
-  }, [chainParam, walletParam, chains, visibleWallets, lastUrlParams]);
+  }, [chainParam, walletParam, chains, wallets, lastUrlParams]);
   
   // Chain selection view state
   const [showAllAddedChains, setShowAllAddedChains] = useState(false);
@@ -1061,6 +1098,9 @@ export default function Dashboard() {
     setSelectedChain(chain);
     setSelectedWallet(null);
     setViewLevel('wallets');
+    // Clear wallet from sessionStorage when switching chains
+    sessionStorage.removeItem('dashboard_selectedWalletId');
+    sessionStorage.removeItem('dashboard_viewLevel');
   };
 
   const handleSelectWallet = (wallet: WalletType) => {
@@ -1088,7 +1128,7 @@ export default function Dashboard() {
       setPendingWalletAccess({
         wallet,
         callback: () => {
-          console.log("[handleSelectWallet callback] Setting wallet:", wallet.id, "chain:", currentChain?.name);
+          console.log("[handleSelectWallet callback] Setting wallet:", wallet.id, "label:", wallet.label, "address:", wallet.address, "chain:", currentChain?.name);
           // Ensure chain is set first, then wallet
           if (currentChain) {
             setSelectedChain(currentChain);
@@ -1111,10 +1151,17 @@ export default function Dashboard() {
     if (viewLevel === 'tokens') {
       setSelectedWallet(null);
       setViewLevel('wallets');
+      // Clear sessionStorage when leaving tokens view
+      sessionStorage.removeItem('dashboard_selectedWalletId');
+      sessionStorage.removeItem('dashboard_viewLevel');
     } else if (viewLevel === 'wallets') {
       setSelectedChain(null);
       setSelectedWallet(null);
       setViewLevel('chains');
+      // Clear all navigation storage
+      sessionStorage.removeItem('dashboard_selectedWalletId');
+      sessionStorage.removeItem('dashboard_selectedChainId');
+      sessionStorage.removeItem('dashboard_viewLevel');
     }
   };
 
@@ -1859,7 +1906,7 @@ export default function Dashboard() {
                 <CardContent className="p-6">
                   <div className="text-center space-y-4">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Main Wallet Balance</p>
+                      <p className="text-sm text-muted-foreground mb-1">{selectedWallet.label || "Main Wallet"} Balance</p>
                       <p className="text-3xl font-bold">
                         {formatUSD(selectedWalletUSDValue)}
                       </p>
@@ -1870,7 +1917,7 @@ export default function Dashboard() {
                     <div className="flex gap-3 justify-center">
                       <Button 
                         className="gap-2 flex-1 sm:flex-none"
-                        onClick={() => navigate(`/transfer?chain=${selectedChain.id}`)}
+                        onClick={() => navigate(`/transfer?chain=${selectedChain.id}&wallet=${selectedWallet.id}`)}
                         data-testid="button-send"
                       >
                         <ArrowUpRight className="h-4 w-4" />
@@ -1879,7 +1926,7 @@ export default function Dashboard() {
                       <Button 
                         variant="outline"
                         className="gap-2 flex-1 sm:flex-none"
-                        onClick={() => navigate(`/transfer?chain=${selectedChain.id}&type=receive`)}
+                        onClick={() => navigate(`/transfer?chain=${selectedChain.id}&wallet=${selectedWallet.id}&type=receive`)}
                         data-testid="button-receive"
                       >
                         <ArrowDownLeft className="h-4 w-4" />
@@ -1967,7 +2014,7 @@ export default function Dashboard() {
               {showAssets && (
               <Card 
                 className="cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => navigate(`/wallet/${selectedChain.id}/token/native`)}
+                onClick={() => navigate(`/wallet/${selectedChain.id}/token/native?wallet=${selectedWallet.id}`)}
                 data-testid={`card-token-native`}
               >
                 <CardContent className="p-4">
@@ -2000,7 +2047,7 @@ export default function Dashboard() {
                     <Card 
                       key={token.id} 
                       className="cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => navigate(`/wallet/${selectedChain.id}/token/${token.id}`)}
+                      onClick={() => navigate(`/wallet/${selectedChain.id}/token/${token.id}?wallet=${selectedWallet.id}`)}
                       data-testid={`card-token-${token.id}`}
                     >
                       <CardContent className="p-4">
@@ -2043,7 +2090,7 @@ export default function Dashboard() {
                     <Card 
                       key={token.id} 
                       className="cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => navigate(`/wallet/${selectedChain.id}/token/${token.id}`)}
+                      onClick={() => navigate(`/wallet/${selectedChain.id}/token/${token.id}?wallet=${selectedWallet.id}`)}
                       data-testid={`card-custom-token-${token.id}`}
                     >
                       <CardContent className="p-4">
