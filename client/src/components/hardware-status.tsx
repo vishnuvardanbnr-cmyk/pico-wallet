@@ -2043,8 +2043,8 @@ export function WalletModeSelector() {
       setSetupError("Recovery phrase must be 12 or 24 words.");
       return;
     }
-    if (newPin.length < 4 || newPin.length > 6 || !/^\d+$/.test(newPin)) {
-      setSetupError("PIN must be 4-6 digits.");
+    if (newPin.length !== 5 || !/^\d+$/.test(newPin)) {
+      setSetupError("PIN must be exactly 5 digits.");
       return;
     }
     if (newPin !== confirmPin) {
@@ -2054,16 +2054,25 @@ export function WalletModeSelector() {
     
     setIsSettingUp(true);
     try {
-      const { hardwareWallet } = await import("@/lib/hardware-wallet");
-      await hardwareWallet.setPin(newPin);
-      const success = await connectSimulated(words.join(" "));
+      const { softWallet } = await import("@/lib/soft-wallet");
+      const success = await softWallet.setup(words.join(" "), newPin);
       if (success) {
-        const unlocked = await unlockWallet(newPin);
+        const unlocked = await softWallet.unlock(newPin);
         if (unlocked) {
-          await deriveWallets();
+          const defaultChainIds: string[] = [];
+          DEFAULT_CHAINS.forEach((chain, index) => {
+            if (['ETH', 'BTC', 'BNB', 'TRX'].includes(chain.symbol)) {
+              defaultChainIds.push(`chain-${index}`);
+            }
+          });
+          await deriveWallets(defaultChainIds);
           setShowPicoSetupDialog(false);
           toast({ title: "Wallet Created", description: "Your soft wallet is ready." });
+        } else {
+          setSetupError(softWallet.getState().error || "Failed to unlock wallet after setup.");
         }
+      } else {
+        setSetupError(softWallet.getState().error || "Failed to create wallet.");
       }
     } catch (error: any) {
       setSetupError(error.message || "Failed to create wallet.");
@@ -2123,7 +2132,7 @@ export function WalletModeSelector() {
             <DialogDescription>Enter a seed phrase to create your soft wallet.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Alert><Shield className="h-4 w-4" /><AlertDescription>For testing only. Enter a seed phrase to simulate a hardware wallet.</AlertDescription></Alert>
+            <Alert><Shield className="h-4 w-4" /><AlertDescription>Enter your recovery phrase and create a PIN to set up your soft wallet.</AlertDescription></Alert>
             <div className="space-y-2">
               <Label>Seed Phrase (12 or 24 words)</Label>
               <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Enter your seed phrase separated by spaces" value={seedPhrase} onChange={(e) => { setSeedPhrase(e.target.value); setSetupError(""); }} data-testid="input-mode-seed-phrase" />
