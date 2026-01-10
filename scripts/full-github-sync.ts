@@ -49,7 +49,7 @@ async function uploadFile(octokit: Octokit, owner: string, repo: string, filePat
 }
 
 async function main() {
-  const repoName = 'pico-hardware-wallet';
+  const repoName = 'pico-wallet';
   const token = await getAccessToken();
   const octokit = new Octokit({ auth: token });
   
@@ -63,6 +63,7 @@ async function main() {
     .filter(f => f && 
       !f.startsWith('node_modules/') && 
       !f.startsWith('.cache/') &&
+      !f.startsWith('temp_repo/') &&
       !f.includes('/build/') &&
       !f.endsWith('.apk'));
 
