@@ -1,9 +1,11 @@
-
 name: Build Android APK
 
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'scripts/**'
   workflow_dispatch:
 
 jobs:
@@ -44,15 +46,15 @@ jobs:
         mkdir -p android/app/src/main/java/app/vaultkey/wallet/plugins
         cp -r android-plugins/src/main/java/app/vaultkey/wallet/plugins/* android/app/src/main/java/app/vaultkey/wallet/plugins/
     
-    - name: Add JitPack repository to project build.gradle
+    - name: Add JitPack repository
       run: |
         sed -i '/mavenCentral()/a\        maven { url "https://jitpack.io" }' android/build.gradle
     
-    - name: Add USB Serial library dependency
+    - name: Add USB Serial library
       run: |
         sed -i '/dependencies {/a\    implementation "com.github.mik3y:usb-serial-for-android:3.7.0"' android/app/build.gradle
     
-    - name: Register native plugins in MainActivity
+    - name: Register plugins in MainActivity
       run: |
         cat > android/app/src/main/java/app/vaultkey/wallet/MainActivity.java << 'EOF'
 package app.vaultkey.wallet;
@@ -72,16 +74,13 @@ public class MainActivity extends BridgeActivity {
 }
 EOF
     
-    - name: Add USB permissions to AndroidManifest
+    - name: Add USB permissions
       run: |
         sed -i '/<application/i\    <uses-feature android:name="android.hardware.usb.host" android:required="false" />' android/app/src/main/AndroidManifest.xml
     
-    - name: Make gradlew executable
-      run: chmod +x android/gradlew
-    
     - name: Build APK
       working-directory: android
-      run: ./gradlew assembleDebug --stacktrace
+      run: chmod +x gradlew && ./gradlew assembleDebug --stacktrace
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
