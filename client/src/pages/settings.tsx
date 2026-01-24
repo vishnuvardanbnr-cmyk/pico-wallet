@@ -55,6 +55,9 @@ import { clientStorage } from "@/lib/client-storage";
 import { walletConnectService, type SessionProposal, type DAppSession } from "@/lib/walletconnect-service";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { diagnoseUsbSerial } from "@/lib/mobile-usb-serial";
+import { diagnoseDAppBrowser } from "@/lib/native-dapp-browser";
+import { Capacitor } from "@capacitor/core";
 
 export default function Settings() {
   const { isUnlocked, hardwareState, walletMode, setShowPinModal, setPinAction, lockWallet, disconnectDevice, wallets } = useWallet();
@@ -583,6 +586,24 @@ export default function Settings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Debug/Diagnostics Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Smartphone className="h-4 w-4 text-blue-500" />
+              </div>
+              Plugin Diagnostics
+            </CardTitle>
+            <CardDescription>
+              Platform: {Capacitor.getPlatform()} | Native: {Capacitor.isNativePlatform() ? "Yes" : "No"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <DiagnosticsPanel />
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={showResetDialog} onOpenChange={(open) => {
@@ -890,6 +911,83 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function DiagnosticsPanel() {
+  const [diagnostics, setDiagnostics] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const { toast } = useToast();
+
+  const runDiagnostics = async () => {
+    setIsRunning(true);
+    setDiagnostics(["Running diagnostics..."]);
+    
+    try {
+      const results: string[] = [];
+      results.push("=== USB Serial Plugin ===");
+      const usbResults = await diagnoseUsbSerial();
+      results.push(...usbResults);
+      
+      results.push("");
+      results.push("=== DApp Browser Plugin ===");
+      const dappResults = await diagnoseDAppBrowser();
+      results.push(...dappResults);
+      
+      setDiagnostics(results);
+      
+      toast({
+        title: "Diagnostics Complete",
+        description: "Check the results below",
+      });
+    } catch (e: any) {
+      setDiagnostics([`Error: ${e?.message || e}`]);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const copyDiagnostics = async () => {
+    try {
+      await navigator.clipboard.writeText(diagnostics.join("\n"));
+      toast({
+        title: "Copied",
+        description: "Diagnostics copied to clipboard",
+      });
+    } catch {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Button 
+          size="sm" 
+          onClick={runDiagnostics} 
+          disabled={isRunning}
+        >
+          {isRunning ? "Running..." : "Run Diagnostics"}
+        </Button>
+        {diagnostics.length > 0 && (
+          <Button size="sm" variant="outline" onClick={copyDiagnostics}>
+            Copy Results
+          </Button>
+        )}
+      </div>
+      
+      {diagnostics.length > 0 && (
+        <div className="p-3 bg-muted/50 rounded-lg max-h-64 overflow-auto">
+          <pre className="text-xs font-mono whitespace-pre-wrap">
+            {diagnostics.join("\n")}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
