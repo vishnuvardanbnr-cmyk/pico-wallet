@@ -18,7 +18,33 @@ const DAppBrowser = registerPlugin<DAppBrowserPlugin>("DAppBrowser");
 export function isNativeDAppBrowserAvailable(): boolean {
   const isAndroid = Capacitor.getPlatform() === "android";
   const isIOS = Capacitor.getPlatform() === "ios";
-  return Capacitor.isNativePlatform() && (isAndroid || isIOS);
+  const result = Capacitor.isNativePlatform() && (isAndroid || isIOS);
+  console.log("[NativeDAppBrowser] isNativeDAppBrowserAvailable:", { isNative: Capacitor.isNativePlatform(), isAndroid, isIOS, result });
+  return result;
+}
+
+export async function diagnoseDAppBrowser(): Promise<string[]> {
+  const diagnostics: string[] = [];
+  
+  diagnostics.push(`Platform: ${Capacitor.getPlatform()}`);
+  diagnostics.push(`Is Native: ${Capacitor.isNativePlatform()}`);
+  diagnostics.push(`DAppBrowser available: ${isNativeDAppBrowserAvailable()}`);
+  
+  if (!isNativeDAppBrowserAvailable()) {
+    diagnostics.push("Not running on native platform");
+    return diagnostics;
+  }
+  
+  try {
+    const result = await DAppBrowser.open({ url: "about:blank", address: "0x0000000000000000000000000000000000000000", chainId: 1 });
+    diagnostics.push(`open test: ${JSON.stringify(result)}`);
+    await DAppBrowser.close();
+    diagnostics.push("close test: success");
+  } catch (e: any) {
+    diagnostics.push(`DAppBrowser test ERROR: ${e?.message || e}`);
+  }
+  
+  return diagnostics;
 }
 
 export class NativeDAppBrowserService {
