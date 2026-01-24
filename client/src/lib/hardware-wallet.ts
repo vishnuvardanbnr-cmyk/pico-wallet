@@ -162,15 +162,16 @@ class HardwareWalletService {
   private mobileMonitoringStarted = false;
 
   async initMobileDeviceMonitoring(): Promise<void> {
-    if (this.mobileMonitoringStarted || !isMobileWithUsbSupport()) return;
+    if (!isMobileWithUsbSupport()) return;
     
+    // Always start monitoring even if already started to ensure listeners are fresh
     this.mobileMonitoringStarted = true;
     console.log("[HardwareWallet] Starting mobile USB device monitoring...");
     
     mobileUsbSerial.onDeviceAttached(async (device) => {
       console.log("[HardwareWallet] USB device attached, attempting auto-connect:", device);
       // Pico vendor ID can be 11914 (0x2E8A) or others depending on mode
-      if (device.vendorId === 11914 || device.vendorId === 0x2E8A) {
+      if (device.vendorId === 11914 || device.vendorId === 0x2E8A || device.vendorId === 0x0003) {
         await this.connectRaspberryPi();
       }
     });

@@ -133,10 +133,23 @@ export class MobileUsbSerialService {
     }
 
     try {
-      const result = await UsbSerial.connect({ vendorId: 11914 });
+      // Try multiple vendor IDs for different Pico firmware modes
+      const vendorIds = [11914, 0x2E8A, 0x0003];
+      let result = { success: false, error: "No device found" };
+      
+      for (const vId of vendorIds) {
+        console.log(`[MobileUsbSerial] Attempting connect with vendorId: ${vId}`);
+        result = await UsbSerial.connect({ vendorId: vId });
+        if (result.success) break;
+      }
       
       if (!result.success) {
-        throw new Error(result.error || "Failed to connect");
+        // Final attempt without filtering to catch generic serial devices
+        result = await UsbSerial.connect({});
+      }
+      
+      if (!result.success) {
+        throw new Error(result.error || "Failed to connect to any USB device");
       }
 
       this.connected = true;
