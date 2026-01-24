@@ -171,11 +171,13 @@ class HardwareWalletService {
     mobileUsbSerial.onDeviceAttached(async (device) => {
       console.log("[HardwareWallet] USB device attached, attempting auto-connect:", device);
       // Pico vendor ID can be 11914 (0x2E8A) or others depending on mode
-      if (device.vendorId === 11914 || device.vendorId === 0x2E8A || device.vendorId === 0x0003) {
+      // Android vendor IDs are often reported in decimal (11914) or hex (0x2E8A)
+      const vId = Number(device.vendorId);
+      if (vId === 11914 || vId === 0x2E8A || vId === 0x0003 || vId === 1155) {
         await this.connectRaspberryPi();
       }
     });
-    
+
     mobileUsbSerial.onDeviceDetached(() => {
       console.log("[HardwareWallet] USB device detached");
       if (this.usingMobileUsb) {
@@ -194,7 +196,10 @@ class HardwareWalletService {
     
     const devices = await mobileUsbSerial.getDeviceList();
     console.log("[HardwareWallet] Initial device list:", devices);
-    const picoDevice = devices.find(d => d.vendorId === 11914);
+    const picoDevice = devices.find(d => {
+      const vId = Number(d.vendorId);
+      return vId === 11914 || vId === 0x2E8A || vId === 0x0003 || vId === 1155;
+    });
     if (picoDevice) {
       console.log("[HardwareWallet] Pico device already connected, auto-connecting...");
       await this.connectRaspberryPi();

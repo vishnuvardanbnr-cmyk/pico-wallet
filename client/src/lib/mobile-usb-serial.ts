@@ -134,7 +134,10 @@ export class MobileUsbSerialService {
 
     try {
       // Try multiple vendor IDs for different Pico firmware modes
-      const vendorIds = [11914, 0x2E8A, 0x0003];
+      // 11914 (0x2E8A) - Standard Pico
+      // 0x0003 - Common CDC Serial
+      // 1155 (0x0483) - STMicroelectronics (common for generic boards)
+      const vendorIds = [11914, 0x2E8A, 0x0003, 1155];
       let result = { success: false, error: "No device found" };
       
       for (const vId of vendorIds) {
@@ -145,11 +148,12 @@ export class MobileUsbSerialService {
       
       if (!result.success) {
         // Final attempt without filtering to catch generic serial devices
+        console.log(`[MobileUsbSerial] Attempting connect without vendor filtering`);
         result = await UsbSerial.connect({});
       }
       
       if (!result.success) {
-        throw new Error(result.error || "Failed to connect to any USB device");
+        throw new Error(result.error || "Failed to connect to any USB device. Ensure you have granted permission and are using an OTG cable.");
       }
 
       this.connected = true;
