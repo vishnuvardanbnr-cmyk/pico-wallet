@@ -78,6 +78,52 @@ async function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+async function uploadFileWithRetry(
+  octokit: Octokit, 
+  owner: string, 
+  repo: string, 
+  filePath: string, 
+  content: string,
+  retries = 3
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Always fetch fresh SHA right before update
+      let existingSha: string | undefined;
+      try {
+        const { data: existing } = await octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path: filePath
+        });
+        if ('sha' in existing) {
+          existingSha = existing.sha;
+        }
+      } catch (e) {
+        // File doesn't exist yet
+      }
+      
+      await octokit.rest.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path: filePath,
+        message: `Update ${filePath}`,
+        content: Buffer.from(content).toString('base64'),
+        sha: existingSha
+      });
+      
+      return true;
+    } catch (e: any) {
+      if (attempt < retries && (e.status === 409 || e.message?.includes('expected'))) {
+        await sleep(500 * attempt);
+        continue;
+      }
+      throw e;
+    }
+  }
+  return false;
+}
+
 async function main() {
   const repoName = process.argv[2] || 'pico-wallet';
   
@@ -117,38 +163,14 @@ async function main() {
   const files = getAllFiles('.');
   console.log(`Found ${files.length} files to upload`);
 
-  // Upload files using Contents API (works with limited permissions)
+  // Upload files sequentially with retry logic
   console.log('Uploading files...');
   let uploaded = 0;
   let errors = 0;
   
   for (const file of files) {
     try {
-      // Check if file exists
-      let existingSha: string | undefined;
-      try {
-        const { data: existing } = await octokit.rest.repos.getContent({
-          owner: user.login,
-          repo: repoName,
-          path: file.path
-        });
-        if ('sha' in existing) {
-          existingSha = existing.sha;
-        }
-      } catch (e) {
-        // File doesn't exist yet
-      }
-      
-      // Create or update file
-      await octokit.rest.repos.createOrUpdateFileContents({
-        owner: user.login,
-        repo: repoName,
-        path: file.path,
-        message: `Update ${file.path}`,
-        content: Buffer.from(file.content).toString('base64'),
-        sha: existingSha
-      });
-      
+      await uploadFileWithRetry(octokit, user.login, repoName, file.path, file.content);
       uploaded++;
       if (uploaded % 20 === 0) {
         console.log(`  Uploaded ${uploaded}/${files.length} files...`);
