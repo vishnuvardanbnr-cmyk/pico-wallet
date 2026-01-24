@@ -46,11 +46,25 @@ export class MobileUsbSerialService {
       return false;
     }
     try {
+      // Check if we already have permissions/connection
+      const connectedStatus = await UsbSerial.isConnected();
+      if (connectedStatus.connected) return true;
+
       const result = await UsbSerial.getDevices();
       console.log('[MobileUsbSerial] getDevices result:', result);
+      
+      // If no devices found via getDevices, try requesting one explicitly
+      // (This triggers the permission dialog on some Android versions)
+      if (!result.success || result.count === 0) {
+        if (UsbSerial.requestDevice) {
+          const reqResult = await UsbSerial.requestDevice({ vendorId: 11914 });
+          return reqResult.success;
+        }
+      }
+      
       return result.success && result.count > 0;
     } catch (e) {
-      console.log('[MobileUsbSerial] getDevices error:', e);
+      console.log('[MobileUsbSerial] isAvailable error:', e);
       return false;
     }
   }

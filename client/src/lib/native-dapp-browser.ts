@@ -16,7 +16,9 @@ interface DAppBrowserPlugin {
 const DAppBrowser = registerPlugin<DAppBrowserPlugin>("DAppBrowser");
 
 export function isNativeDAppBrowserAvailable(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  const isAndroid = Capacitor.getPlatform() === "android";
+  const isIOS = Capacitor.getPlatform() === "ios";
+  return Capacitor.isNativePlatform() && (isAndroid || isIOS);
 }
 
 export class NativeDAppBrowserService {

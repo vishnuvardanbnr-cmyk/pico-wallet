@@ -12,6 +12,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { HardwareStatus } from "@/components/hardware-status";
 import { PinModal } from "@/components/pin-modal";
 import { MobileFooter } from "@/components/mobile-footer";
+import { SplashScreen } from "@/components/splash-screen";
+import { useState } from "react";
 
 import Dashboard from "@/pages/dashboard";
 import Transfer from "@/pages/transfer";
@@ -64,6 +66,7 @@ function Router() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3.5rem",
@@ -73,6 +76,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <WalletProvider>
+          {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
           <TooltipProvider>
             <SidebarProvider style={style as React.CSSProperties}>
               <div className="flex h-screen w-full">

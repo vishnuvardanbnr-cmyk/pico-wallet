@@ -169,7 +169,8 @@ class HardwareWalletService {
     
     mobileUsbSerial.onDeviceAttached(async (device) => {
       console.log("[HardwareWallet] USB device attached, attempting auto-connect:", device);
-      if (device.vendorId === 11914) {
+      // Pico vendor ID can be 11914 (0x2E8A) or others depending on mode
+      if (device.vendorId === 11914 || device.vendorId === 0x2E8A) {
         await this.connectRaspberryPi();
       }
     });
