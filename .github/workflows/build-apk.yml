@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -38,12 +39,49 @@ jobs:
     - name: Sync Capacitor
       run: npx cap sync android
     
+    - name: Copy native plugins
+      run: |
+        mkdir -p android/app/src/main/java/app/vaultkey/wallet/plugins
+        cp -r android-plugins/src/main/java/app/vaultkey/wallet/plugins/* android/app/src/main/java/app/vaultkey/wallet/plugins/
+    
+    - name: Add JitPack repository to project build.gradle
+      run: |
+        sed -i '/mavenCentral()/a\        maven { url "https://jitpack.io" }' android/build.gradle
+    
+    - name: Add USB Serial library dependency
+      run: |
+        sed -i '/dependencies {/a\    implementation "com.github.mik3y:usb-serial-for-android:3.7.0"' android/app/build.gradle
+    
+    - name: Register native plugins in MainActivity
+      run: |
+        cat > android/app/src/main/java/app/vaultkey/wallet/MainActivity.java << 'EOF'
+package app.vaultkey.wallet;
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+import app.vaultkey.wallet.plugins.UsbSerialPlugin;
+import app.vaultkey.wallet.plugins.DAppBrowserPlugin;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(UsbSerialPlugin.class);
+        registerPlugin(DAppBrowserPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+EOF
+    
+    - name: Add USB permissions to AndroidManifest
+      run: |
+        sed -i '/<application/i\    <uses-feature android:name="android.hardware.usb.host" android:required="false" />' android/app/src/main/AndroidManifest.xml
+    
     - name: Make gradlew executable
       run: chmod +x android/gradlew
     
     - name: Build APK
       working-directory: android
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --stacktrace
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
