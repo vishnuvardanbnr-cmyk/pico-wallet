@@ -25,7 +25,38 @@ interface UsbSerialPlugin {
 const UsbSerial = registerPlugin<UsbSerialPlugin>("UsbSerial");
 
 export function isMobileWithUsbSupport(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+  const isNative = Capacitor.isNativePlatform();
+  const isAndroid = Capacitor.getPlatform() === "android";
+  console.log("[MobileUsbSerial] isMobileWithUsbSupport check:", { isNative, isAndroid });
+  return isNative && isAndroid;
+}
+
+export async function diagnoseUsbSerial(): Promise<string[]> {
+  const diagnostics: string[] = [];
+  
+  diagnostics.push(`Platform: ${Capacitor.getPlatform()}`);
+  diagnostics.push(`Is Native: ${Capacitor.isNativePlatform()}`);
+  
+  if (!isMobileWithUsbSupport()) {
+    diagnostics.push("Not running on Android native platform");
+    return diagnostics;
+  }
+  
+  try {
+    const connected = await UsbSerial.isConnected();
+    diagnostics.push(`isConnected: ${JSON.stringify(connected)}`);
+  } catch (e: any) {
+    diagnostics.push(`isConnected ERROR: ${e?.message || e}`);
+  }
+  
+  try {
+    const devices = await UsbSerial.getDevices();
+    diagnostics.push(`getDevices: ${JSON.stringify(devices)}`);
+  } catch (e: any) {
+    diagnostics.push(`getDevices ERROR: ${e?.message || e}`);
+  }
+  
+  return diagnostics;
 }
 
 export class MobileUsbSerialService {
