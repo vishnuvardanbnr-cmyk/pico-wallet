@@ -138,7 +138,7 @@ export class MobileUsbSerialService {
       // 0x0003 - Common CDC Serial
       // 1155 (0x0483) - STMicroelectronics (common for generic boards)
       const vendorIds = [11914, 0x2E8A, 0x0003, 1155];
-      let result = { success: false, error: "No device found" };
+      let result: { success: boolean; deviceName?: string; error?: string } = { success: false, error: "No device found" };
       
       for (const vId of vendorIds) {
         console.log(`[MobileUsbSerial] Attempting connect with vendorId: ${vId}`);
@@ -153,7 +153,7 @@ export class MobileUsbSerialService {
       }
       
       if (!result.success) {
-        throw new Error(result.error || "Failed to connect to any USB device. Ensure you have granted permission and are using an OTG cable.");
+        throw new Error(result.error ?? "Failed to connect to any USB device. Ensure you have granted permission and are using an OTG cable.");
       }
 
       this.connected = true;
