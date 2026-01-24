@@ -88,107 +88,80 @@ async function main() {
   const { data: user } = await octokit.rest.users.getAuthenticated();
   console.log(`Authenticated as: ${user.login}`);
   
-  // Delete existing repo to start fresh
-  console.log('Deleting existing repository to start fresh...');
+  // Check if repo exists
+  let repoExists = false;
+  
   try {
-    await octokit.rest.repos.delete({ owner: user.login, repo: repoName });
-    console.log('Deleted existing repo');
-    await sleep(2000);
+    await octokit.rest.repos.get({ owner: user.login, repo: repoName });
+    repoExists = true;
+    console.log('Repository exists');
   } catch (e) {
-    console.log('No existing repo to delete or no permission');
+    console.log('Repository does not exist, will create');
   }
   
-  // Create new repo with auto_init
-  console.log(`Creating repository ${user.login}/${repoName}...`);
-  try {
+  // Create repo if it doesn't exist
+  if (!repoExists) {
+    console.log(`Creating repository ${user.login}/${repoName}...`);
     await octokit.rest.repos.createForAuthenticatedUser({
       name: repoName,
       description: 'Multi-chain cryptocurrency hardware wallet application',
       private: false,
-      auto_init: false // Disable auto_init to keep it empty
+      auto_init: true
     });
     console.log('Repository created');
     await sleep(3000);
-  } catch (e: any) {
-    if (e.status !== 422) throw e;
-    console.log('Repo already exists');
-  }
-
-  // Get current tree of the repo if it exists to build upon it
-  let baseTreeSha: string | undefined;
-  try {
-    const { data: refData } = await octokit.rest.git.getRef({
-      owner: user.login,
-      repo: repoName,
-      ref: 'heads/main'
-    });
-    baseTreeSha = refData.object.sha;
-  } catch (e) {
-    // Branch doesn't exist yet
   }
   
   // Collect files
   console.log('Collecting files...');
   const files = getAllFiles('.');
-  console.log(`Found ${files.length} files to bundle`);
+  console.log(`Found ${files.length} files to upload`);
 
-  // Create Blobs for all files
-  console.log('Creating blobs...');
-  const treeItems: any[] = [];
+  // Upload files using Contents API (works with limited permissions)
+  console.log('Uploading files...');
+  let uploaded = 0;
+  let errors = 0;
+  
   for (const file of files) {
-    const { data: blobData } = await octokit.rest.git.createBlob({
-      owner: user.login,
-      repo: repoName,
-      content: Buffer.from(file.content).toString('base64'),
-      encoding: 'base64'
-    });
-    treeItems.push({
-      path: file.path,
-      mode: '100644',
-      type: 'blob',
-      sha: blobData.sha
-    });
-  }
-
-  // Create Tree
-  console.log('Creating tree...');
-  const { data: treeData } = await octokit.rest.git.createTree({
-    owner: user.login,
-    repo: repoName,
-    tree: treeItems,
-    base_tree: baseTreeSha
-  });
-
-  // Create Commit
-  console.log('Creating commit...');
-  const { data: commitData } = await octokit.rest.git.createCommit({
-    owner: user.login,
-    repo: repoName,
-    message: 'Initial project push - complete bundle',
-    tree: treeData.sha,
-    parents: baseTreeSha ? [baseTreeSha] : []
-  });
-
-  // Update Ref (Push)
-  console.log('Updating reference...');
-  if (baseTreeSha) {
-    await octokit.rest.git.updateRef({
-      owner: user.login,
-      repo: repoName,
-      ref: 'heads/main',
-      sha: commitData.sha
-    });
-  } else {
-    await octokit.rest.git.createRef({
-      owner: user.login,
-      repo: repoName,
-      ref: 'refs/heads/main',
-      sha: commitData.sha
-    });
+    try {
+      // Check if file exists
+      let existingSha: string | undefined;
+      try {
+        const { data: existing } = await octokit.rest.repos.getContent({
+          owner: user.login,
+          repo: repoName,
+          path: file.path
+        });
+        if ('sha' in existing) {
+          existingSha = existing.sha;
+        }
+      } catch (e) {
+        // File doesn't exist yet
+      }
+      
+      // Create or update file
+      await octokit.rest.repos.createOrUpdateFileContents({
+        owner: user.login,
+        repo: repoName,
+        path: file.path,
+        message: `Update ${file.path}`,
+        content: Buffer.from(file.content).toString('base64'),
+        sha: existingSha
+      });
+      
+      uploaded++;
+      if (uploaded % 20 === 0) {
+        console.log(`  Uploaded ${uploaded}/${files.length} files...`);
+      }
+    } catch (e: any) {
+      errors++;
+      console.log(`  Error uploading ${file.path}: ${e.message}`);
+    }
   }
   
-  console.log(`\nSuccess! Code pushed as a single commit to: https://github.com/${user.login}/${repoName}`);
-  console.log(`\nGitHub Actions will now build the APK exactly ONCE.`);
+  console.log(`\nUpload complete: ${uploaded} files uploaded, ${errors} errors`);
+  console.log(`\nCode pushed to: https://github.com/${user.login}/${repoName}`);
+  console.log(`\nGitHub Actions will now build the APK.`);
   console.log(`Check: https://github.com/${user.login}/${repoName}/actions`);
 }
 
