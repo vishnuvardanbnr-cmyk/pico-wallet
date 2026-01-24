@@ -5,10 +5,13 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -32,6 +35,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 @CapacitorPlugin(name = "DAppBrowser")
@@ -46,70 +50,86 @@ public class DAppBrowserPlugin extends Plugin {
     
     private static final String WEB3_PROVIDER_JS = 
         "(function() {" +
-        "  if (window.ethereum) return;" +
-        "  console.log('[VaultKey] Injecting Web3 provider');" +
+        "  if (window.ethereum && window.ethereum.isVaultKey) {" +
+        "    console.log('[VaultKey] Provider already injected');" +
+        "    return;" +
+        "  }" +
+        "  console.log('[VaultKey] Injecting Web3 provider...');" +
         "  " +
         "  const callbacks = new Map();" +
         "  let requestId = 0;" +
         "  " +
-        "  window.ethereum = {" +
+        "  const provider = {" +
         "    isMetaMask: true," +
         "    isVaultKey: true," +
-        "    chainId: '0x' + (%d).toString(16)," +
-        "    networkVersion: '%d'," +
-        "    selectedAddress: '%s'," +
+        "    _chainId: %d," +
         "    _address: '%s'," +
+        "    _events: {}," +
+        "    " +
+        "    get chainId() { return '0x' + this._chainId.toString(16); }," +
+        "    get networkVersion() { return String(this._chainId); }," +
+        "    get selectedAddress() { return this._address || null; }," +
         "    " +
         "    isConnected: function() { return true; }," +
         "    " +
         "    request: async function(args) {" +
         "      const method = args.method;" +
         "      const params = args.params || [];" +
-        "      console.log('[VaultKey] Request:', method, params);" +
+        "      console.log('[VaultKey] Request:', method, JSON.stringify(params));" +
         "      " +
-        "      if (method === 'eth_accounts' || method === 'eth_requestAccounts') {" +
-        "        return [this._address];" +
+        "      try {" +
+        "        if (method === 'eth_accounts' || method === 'eth_requestAccounts') {" +
+        "          return this._address ? [this._address] : [];" +
+        "        }" +
+        "        if (method === 'eth_chainId') {" +
+        "          return this.chainId;" +
+        "        }" +
+        "        if (method === 'net_version') {" +
+        "          return this.networkVersion;" +
+        "        }" +
+        "        if (method === 'wallet_switchEthereumChain' || " +
+        "            method === 'eth_sendTransaction' || method === 'eth_signTransaction' ||" +
+        "            method === 'personal_sign' || method === 'eth_sign' ||" +
+        "            method.includes('signTypedData')) {" +
+        "          return await this._sendToNative(method, params);" +
+        "        }" +
+        "        return await this._rpcCall(method, params);" +
+        "      } catch (e) {" +
+        "        console.error('[VaultKey] Request error:', e);" +
+        "        throw e;" +
         "      }" +
-        "      if (method === 'eth_chainId') {" +
-        "        return this.chainId;" +
-        "      }" +
-        "      if (method === 'net_version') {" +
-        "        return this.networkVersion;" +
-        "      }" +
-        "      if (method === 'wallet_switchEthereumChain') {" +
-        "        return this._sendToNative(method, params);" +
-        "      }" +
-        "      if (method === 'eth_sendTransaction' || method === 'eth_signTransaction' ||" +
-        "          method === 'personal_sign' || method === 'eth_sign' ||" +
-        "          method.includes('signTypedData')) {" +
-        "        return this._sendToNative(method, params);" +
-        "      }" +
-        "      " +
-        "      return this._rpcCall(method, params);" +
         "    }," +
         "    " +
         "    _sendToNative: function(method, params) {" +
         "      return new Promise((resolve, reject) => {" +
         "        const id = ++requestId;" +
-        "        callbacks.set(id, { resolve, reject });" +
-        "        window.VaultKeyBridge.postMessage(JSON.stringify({ id, method, params }));" +
+        "        callbacks.set(id, { resolve, reject, method });" +
+        "        console.log('[VaultKey] Sending to native, id:', id, 'method:', method);" +
+        "        try {" +
+        "          window.VaultKeyBridge.postMessage(JSON.stringify({ id: id, method: method, params: params }));" +
+        "        } catch (e) {" +
+        "          callbacks.delete(id);" +
+        "          reject(new Error('Failed to communicate with wallet: ' + e.message));" +
+        "        }" +
         "      });" +
         "    }," +
         "    " +
         "    _rpcCall: async function(method, params) {" +
         "      const rpcUrl = this._getRpcUrl();" +
+        "      console.log('[VaultKey] RPC call:', method, 'to:', rpcUrl);" +
         "      const response = await fetch(rpcUrl, {" +
         "        method: 'POST'," +
         "        headers: { 'Content-Type': 'application/json' }," +
-        "        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })" +
+        "        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: method, params: params })" +
         "      });" +
         "      const data = await response.json();" +
-        "      if (data.error) throw new Error(data.error.message);" +
+        "      if (data.error) {" +
+        "        throw new Error(data.error.message || 'RPC Error');" +
+        "      }" +
         "      return data.result;" +
         "    }," +
         "    " +
         "    _getRpcUrl: function() {" +
-        "      const chainId = parseInt(this.chainId, 16);" +
         "      const urls = {" +
         "        1: 'https://eth.llamarpc.com'," +
         "        56: 'https://bsc-dataseed.binance.org'," +
@@ -117,57 +137,85 @@ public class DAppBrowserPlugin extends Plugin {
         "        42161: 'https://arb1.arbitrum.io/rpc'," +
         "        10: 'https://mainnet.optimism.io'," +
         "        43114: 'https://api.avax.network/ext/bc/C/rpc'," +
-        "        250: 'https://rpc.ftm.tools'" +
+        "        250: 'https://rpc.ftm.tools'," +
+        "        8453: 'https://mainnet.base.org'" +
         "      };" +
-        "      return urls[chainId] || urls[1];" +
+        "      return urls[this._chainId] || urls[1];" +
         "    }," +
         "    " +
         "    _handleResponse: function(id, result, error) {" +
+        "      console.log('[VaultKey] Handling response, id:', id, 'result:', result, 'error:', error);" +
         "      const cb = callbacks.get(id);" +
         "      if (cb) {" +
         "        callbacks.delete(id);" +
-        "        if (error) cb.reject(new Error(error));" +
-        "        else cb.resolve(result);" +
+        "        if (error) {" +
+        "          cb.reject(new Error(error));" +
+        "        } else {" +
+        "          cb.resolve(result);" +
+        "        }" +
+        "      } else {" +
+        "        console.warn('[VaultKey] No callback found for id:', id);" +
         "      }" +
         "    }," +
         "    " +
         "    on: function(event, handler) {" +
-        "      if (!this._events) this._events = {};" +
         "      if (!this._events[event]) this._events[event] = [];" +
         "      this._events[event].push(handler);" +
+        "      return this;" +
         "    }," +
         "    " +
         "    removeListener: function(event, handler) {" +
-        "      if (this._events && this._events[event]) {" +
-        "        this._events[event] = this._events[event].filter(h => h !== handler);" +
+        "      if (this._events[event]) {" +
+        "        this._events[event] = this._events[event].filter(function(h) { return h !== handler; });" +
         "      }" +
+        "      return this;" +
+        "    }," +
+        "    " +
+        "    removeAllListeners: function(event) {" +
+        "      if (event) {" +
+        "        this._events[event] = [];" +
+        "      } else {" +
+        "        this._events = {};" +
+        "      }" +
+        "      return this;" +
         "    }," +
         "    " +
         "    emit: function(event, data) {" +
-        "      if (this._events && this._events[event]) {" +
-        "        this._events[event].forEach(h => h(data));" +
+        "      console.log('[VaultKey] Emitting event:', event);" +
+        "      if (this._events[event]) {" +
+        "        this._events[event].forEach(function(h) { " +
+        "          try { h(data); } catch(e) { console.error('[VaultKey] Event handler error:', e); }" +
+        "        });" +
         "      }" +
+        "      return true;" +
         "    }," +
         "    " +
-        "    enable: async function() { return [this._address]; }," +
-        "    send: function(method, params) {" +
-        "      if (typeof method === 'string') {" +
-        "        return this.request({ method, params });" +
+        "    enable: async function() { return this._address ? [this._address] : []; }," +
+        "    " +
+        "    send: function(methodOrPayload, paramsOrCallback) {" +
+        "      if (typeof methodOrPayload === 'string') {" +
+        "        return this.request({ method: methodOrPayload, params: paramsOrCallback || [] });" +
         "      }" +
-        "      return this.request(method);" +
+        "      return this.request(methodOrPayload);" +
         "    }," +
+        "    " +
         "    sendAsync: function(payload, callback) {" +
-        "      this.request(payload).then(" +
-        "        result => callback(null, { jsonrpc: '2.0', id: payload.id, result })," +
-        "        error => callback(error, null)" +
+        "      this.request({ method: payload.method, params: payload.params }).then(" +
+        "        function(result) { callback(null, { jsonrpc: '2.0', id: payload.id, result: result }); }," +
+        "        function(error) { callback(error, null); }" +
         "      );" +
         "    }" +
         "  };" +
         "  " +
-        "  window.web3 = { currentProvider: window.ethereum };" +
+        "  window.ethereum = provider;" +
+        "  window.web3 = { currentProvider: provider };" +
         "  " +
-        "  window.dispatchEvent(new Event('ethereum#initialized'));" +
-        "  console.log('[VaultKey] Web3 provider injected successfully');" +
+        "  setTimeout(function() {" +
+        "    window.dispatchEvent(new Event('ethereum#initialized'));" +
+        "    document.dispatchEvent(new Event('ethereum#initialized'));" +
+        "  }, 100);" +
+        "  " +
+        "  console.log('[VaultKey] Web3 provider injected successfully, address:', provider._address);" +
         "})();";
     
     @PluginMethod
@@ -176,7 +224,7 @@ public class DAppBrowserPlugin extends Plugin {
         currentAddress = call.getString("address", "");
         currentChainId = call.getInt("chainId", 1);
         
-        Log.d(TAG, "Opening DApp browser: " + url + " with address: " + currentAddress);
+        Log.d(TAG, "Opening DApp browser: " + url + " with address: " + currentAddress + " chainId: " + currentChainId);
         
         if (url.isEmpty()) {
             JSObject result = new JSObject();
@@ -217,67 +265,114 @@ public class DAppBrowserPlugin extends Plugin {
         LinearLayout toolbar = new LinearLayout(activity);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setBackgroundColor(Color.parseColor("#1a1a2e"));
-        toolbar.setPadding(16, 48, 16, 16);
+        toolbar.setPadding(24, 60, 24, 20);
+        toolbar.setGravity(Gravity.CENTER_VERTICAL);
         
         ImageButton closeBtn = new ImageButton(activity);
         closeBtn.setBackgroundColor(Color.TRANSPARENT);
-        closeBtn.setColorFilter(Color.WHITE);
+        GradientDrawable closeBtnBg = new GradientDrawable();
+        closeBtnBg.setShape(GradientDrawable.OVAL);
+        closeBtnBg.setColor(Color.parseColor("#333355"));
+        closeBtn.setBackground(closeBtnBg);
+        closeBtn.setPadding(16, 16, 16, 16);
         closeBtn.setContentDescription("Close");
+        LinearLayout.LayoutParams closeBtnParams = new LinearLayout.LayoutParams(80, 80);
+        closeBtn.setLayoutParams(closeBtnParams);
         closeBtn.setOnClickListener(v -> closeBrowser());
         
+        TextView closeTxt = new TextView(activity);
+        closeTxt.setText("✕");
+        closeTxt.setTextColor(Color.WHITE);
+        closeTxt.setTextSize(18);
+        closeTxt.setGravity(Gravity.CENTER);
+        
         TextView urlText = new TextView(activity);
-        urlText.setText(url);
-        urlText.setTextColor(Color.WHITE);
+        urlText.setTextColor(Color.parseColor("#cccccc"));
         urlText.setSingleLine(true);
-        urlText.setPadding(16, 0, 16, 0);
+        urlText.setTextSize(13);
+        urlText.setPadding(24, 0, 24, 0);
         LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         urlText.setLayoutParams(urlParams);
         
-        toolbar.addView(closeBtn);
+        try {
+            Uri uri = Uri.parse(url);
+            urlText.setText(uri.getHost() != null ? uri.getHost() : url);
+        } catch (Exception e) {
+            urlText.setText(url);
+        }
+        
+        TextView walletIndicator = new TextView(activity);
+        walletIndicator.setText("🔗");
+        walletIndicator.setTextSize(16);
+        walletIndicator.setPadding(16, 0, 0, 0);
+        
+        toolbar.addView(closeTxt);
         toolbar.addView(urlText);
+        toolbar.addView(walletIndicator);
         
         ProgressBar progressBar = new ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setIndeterminate(false);
         progressBar.setMax(100);
         progressBar.setVisibility(View.GONE);
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 6
+        );
+        progressBar.setLayoutParams(progressParams);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            progressBar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#4ade80")));
+        }
         
         dappWebView = new WebView(activity);
-        dappWebView.setLayoutParams(new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        ));
+        LinearLayout.LayoutParams webViewParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1
+        );
+        dappWebView.setLayoutParams(webViewParams);
         
         WebSettings settings = dappWebView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + " VaultKey/1.0");
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        settings.setUserAgentString(settings.getUserAgentString().replace("; wv", "") + " VaultKey/1.0");
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setSupportMultipleWindows(false);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
         
         dappWebView.addJavascriptInterface(new WebAppInterface(), "VaultKeyBridge");
         
         dappWebView.setWebViewClient(new WebViewClient() {
             @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            public void onPageStarted(WebView view, String pageUrl, Bitmap favicon) {
                 progressBar.setVisibility(View.VISIBLE);
-                urlText.setText(url);
+                progressBar.setProgress(10);
+                
+                try {
+                    Uri uri = Uri.parse(pageUrl);
+                    urlText.setText(uri.getHost() != null ? uri.getHost() : pageUrl);
+                } catch (Exception e) {
+                    urlText.setText(pageUrl);
+                }
                 
                 JSObject event = new JSObject();
-                event.put("url", url);
+                event.put("url", pageUrl);
                 event.put("loading", true);
                 notifyListeners("browserEvent", event);
             }
             
             @Override
-            public void onPageFinished(WebView view, String url) {
+            public void onPageFinished(WebView view, String pageUrl) {
                 progressBar.setVisibility(View.GONE);
+                
                 injectWeb3Provider();
                 
                 JSObject event = new JSObject();
-                event.put("url", url);
+                event.put("url", pageUrl);
                 event.put("loading", false);
                 notifyListeners("browserEvent", event);
             }
@@ -296,17 +391,27 @@ public class DAppBrowserPlugin extends Plugin {
                 }
                 return true;
             }
+            
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Log.e(TAG, "WebView error: " + description + " for URL: " + failingUrl);
+            }
         });
         
         dappWebView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
                 progressBar.setProgress(newProgress);
+                if (newProgress >= 100) {
+                    progressBar.setVisibility(View.GONE);
+                }
             }
             
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d(TAG, "Console: " + consoleMessage.message());
+                String level = consoleMessage.messageLevel().toString();
+                Log.d(TAG, "[WebView " + level + "] " + consoleMessage.message() + 
+                      " (line " + consoleMessage.lineNumber() + ")");
                 return true;
             }
         });
@@ -323,6 +428,7 @@ public class DAppBrowserPlugin extends Plugin {
         mainLayout.addView(dappWebView);
         
         browserContainer.addView(mainLayout);
+        browserContainer.setOnClickListener(v -> {});
         
         ViewGroup rootView = activity.findViewById(android.R.id.content);
         rootView.addView(browserContainer);
@@ -333,11 +439,15 @@ public class DAppBrowserPlugin extends Plugin {
     private void injectWeb3Provider() {
         if (dappWebView == null) return;
         
-        String js = String.format(WEB3_PROVIDER_JS, currentChainId, currentChainId, currentAddress, currentAddress);
-        dappWebView.evaluateJavascript(js, null);
+        String js = String.format(WEB3_PROVIDER_JS, currentChainId, currentAddress);
+        Log.d(TAG, "Injecting Web3 provider with chainId: " + currentChainId + ", address: " + currentAddress);
+        dappWebView.evaluateJavascript(js, result -> {
+            Log.d(TAG, "Web3 provider injection result: " + result);
+        });
     }
     
     private void closeBrowser() {
+        Log.d(TAG, "Closing browser");
         getActivity().runOnUiThread(() -> {
             if (browserContainer != null) {
                 ViewGroup rootView = getActivity().findViewById(android.R.id.content);
@@ -346,11 +456,16 @@ public class DAppBrowserPlugin extends Plugin {
             }
             
             if (dappWebView != null) {
+                dappWebView.stopLoading();
                 dappWebView.destroy();
                 dappWebView = null;
             }
             
             isOpen = false;
+            
+            JSObject event = new JSObject();
+            event.put("closed", true);
+            notifyListeners("browserEvent", event);
         });
     }
     
@@ -364,23 +479,35 @@ public class DAppBrowserPlugin extends Plugin {
     
     @PluginMethod
     public void updateAccount(PluginCall call) {
-        currentAddress = call.getString("address", currentAddress);
-        currentChainId = call.getInt("chainId", currentChainId);
+        String newAddress = call.getString("address", currentAddress);
+        int newChainId = call.getInt("chainId", currentChainId);
+        
+        boolean addressChanged = !newAddress.equals(currentAddress);
+        boolean chainChanged = newChainId != currentChainId;
+        
+        currentAddress = newAddress;
+        currentChainId = newChainId;
+        
+        Log.d(TAG, "Updating account - address: " + currentAddress + ", chainId: " + currentChainId);
         
         if (dappWebView != null) {
             getActivity().runOnUiThread(() -> {
-                String js = String.format(
-                    "if(window.ethereum) {" +
-                    "  window.ethereum._address = '%s';" +
-                    "  window.ethereum.selectedAddress = '%s';" +
-                    "  window.ethereum.chainId = '0x%x';" +
-                    "  window.ethereum.networkVersion = '%d';" +
-                    "  window.ethereum.emit('accountsChanged', ['%s']);" +
-                    "  window.ethereum.emit('chainChanged', '0x%x');" +
-                    "}",
-                    currentAddress, currentAddress, currentChainId, currentChainId, currentAddress, currentChainId
-                );
-                dappWebView.evaluateJavascript(js, null);
+                StringBuilder js = new StringBuilder();
+                js.append("if(window.ethereum && window.ethereum.isVaultKey) {");
+                js.append("  window.ethereum._address = '").append(currentAddress).append("';");
+                js.append("  window.ethereum._chainId = ").append(currentChainId).append(";");
+                
+                if (addressChanged) {
+                    js.append("  window.ethereum.emit('accountsChanged', ['").append(currentAddress).append("']);");
+                }
+                if (chainChanged) {
+                    js.append("  window.ethereum.emit('chainChanged', '0x").append(Integer.toHexString(currentChainId)).append("');");
+                }
+                
+                js.append("  console.log('[VaultKey] Account updated');");
+                js.append("}");
+                
+                dappWebView.evaluateJavascript(js.toString(), null);
             });
         }
         
@@ -395,15 +522,24 @@ public class DAppBrowserPlugin extends Plugin {
         String resultStr = call.getString("result", null);
         String error = call.getString("error", null);
         
-        if (dappWebView != null) {
+        Log.d(TAG, "sendResponse called - id: " + id + ", result: " + resultStr + ", error: " + error);
+        
+        if (dappWebView != null && id > 0) {
             getActivity().runOnUiThread(() -> {
                 String js;
                 if (error != null) {
-                    js = String.format("window.ethereum._handleResponse(%d, null, '%s');", id, error.replace("'", "\\'"));
+                    String escapedError = error.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
+                    js = String.format("if(window.ethereum) window.ethereum._handleResponse(%d, null, '%s');", id, escapedError);
+                } else if (resultStr != null) {
+                    js = String.format("if(window.ethereum) window.ethereum._handleResponse(%d, %s, null);", id, resultStr);
                 } else {
-                    js = String.format("window.ethereum._handleResponse(%d, %s, null);", id, resultStr != null ? resultStr : "null");
+                    js = String.format("if(window.ethereum) window.ethereum._handleResponse(%d, null, null);", id);
                 }
-                dappWebView.evaluateJavascript(js, null);
+                
+                Log.d(TAG, "Executing JS: " + js);
+                dappWebView.evaluateJavascript(js, result -> {
+                    Log.d(TAG, "Response JS result: " + result);
+                });
             });
         }
         
@@ -423,17 +559,22 @@ public class DAppBrowserPlugin extends Plugin {
     public void requestPin(PluginCall call) {
         String walletGroupId = call.getString("walletGroupId", "");
         
+        Log.d(TAG, "Requesting PIN for wallet group: " + walletGroupId);
+        
         getActivity().runOnUiThread(() -> {
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            builder.setTitle("Enter PIN");
+            builder.setTitle("Enter PIN to Sign");
+            builder.setMessage("Enter your wallet PIN to authorize this transaction");
             
             final EditText input = new EditText(getActivity());
             input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-            input.setHint("Enter your PIN");
+            input.setHint("Enter PIN");
+            input.setPadding(48, 32, 48, 32);
             builder.setView(input);
             
             builder.setPositiveButton("Confirm", (dialog, which) -> {
                 String pin = input.getText().toString();
+                Log.d(TAG, "PIN entered, length: " + pin.length());
                 JSObject event = new JSObject();
                 event.put("pin", pin);
                 event.put("walletGroupId", walletGroupId);
@@ -443,6 +584,15 @@ public class DAppBrowserPlugin extends Plugin {
             
             builder.setNegativeButton("Cancel", (dialog, which) -> {
                 dialog.cancel();
+                Log.d(TAG, "PIN entry cancelled");
+                JSObject event = new JSObject();
+                event.put("pin", "");
+                event.put("walletGroupId", walletGroupId);
+                event.put("cancelled", true);
+                notifyListeners("pinResponse", event);
+            });
+            
+            builder.setOnCancelListener(dialog -> {
                 JSObject event = new JSObject();
                 event.put("pin", "");
                 event.put("walletGroupId", walletGroupId);
@@ -451,7 +601,9 @@ public class DAppBrowserPlugin extends Plugin {
             });
             
             AlertDialog dialog = builder.create();
-            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+            }
             dialog.show();
         });
         
@@ -463,13 +615,15 @@ public class DAppBrowserPlugin extends Plugin {
     private class WebAppInterface {
         @JavascriptInterface
         public void postMessage(String message) {
+            Log.d(TAG, "Received from WebView: " + message);
             try {
                 JSONObject json = new JSONObject(message);
                 int id = json.getInt("id");
                 String method = json.getString("method");
-                String params = json.optString("params", "[]");
+                JSONArray paramsArray = json.optJSONArray("params");
+                String params = paramsArray != null ? paramsArray.toString() : "[]";
                 
-                Log.d(TAG, "Web3 request: " + method + " id: " + id);
+                Log.d(TAG, "Web3 request - id: " + id + ", method: " + method);
                 
                 JSObject event = new JSObject();
                 event.put("id", id);
@@ -484,12 +638,15 @@ public class DAppBrowserPlugin extends Plugin {
                     getActivity().runOnUiThread(() -> {
                         showSignConfirmation(id, method, params);
                     });
+                } else if (method.equals("wallet_switchEthereumChain")) {
+                    event.put("confirmed", true);
+                    notifyListeners("web3Request", event);
                 } else {
                     notifyListeners("web3Request", event);
                 }
                 
             } catch (Exception e) {
-                Log.e(TAG, "Error parsing web3 request", e);
+                Log.e(TAG, "Error parsing web3 request: " + e.getMessage(), e);
             }
         }
     }
@@ -497,21 +654,28 @@ public class DAppBrowserPlugin extends Plugin {
     private void showSignConfirmation(int id, String method, String params) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         
-        String title = "Sign Request";
-        String message = "A DApp is requesting to sign:\n\n" + method;
+        String title;
+        String message;
         
-        if (method.contains("Transaction")) {
+        if (method.equals("eth_sendTransaction") || method.equals("eth_signTransaction")) {
             title = "Confirm Transaction";
-            message = "A DApp wants to send a transaction.\nReview carefully before signing.";
-        } else if (method.contains("sign")) {
+            message = "A DApp wants to send a transaction.\n\nReview the details in your wallet and confirm.";
+        } else if (method.equals("personal_sign") || method.equals("eth_sign")) {
             title = "Sign Message";
-            message = "A DApp wants to sign a message.\nMake sure you trust this site.";
+            message = "A DApp wants you to sign a message.\n\nMake sure you trust this website.";
+        } else if (method.contains("signTypedData")) {
+            title = "Sign Typed Data";
+            message = "A DApp wants you to sign structured data.\n\nReview carefully before confirming.";
+        } else {
+            title = "Sign Request";
+            message = "A DApp is requesting: " + method;
         }
         
         builder.setTitle(title);
         builder.setMessage(message);
         
-        builder.setPositiveButton("Confirm", (dialog, which) -> {
+        builder.setPositiveButton("Continue", (dialog, which) -> {
+            Log.d(TAG, "User confirmed sign request, id: " + id);
             JSObject event = new JSObject();
             event.put("id", id);
             event.put("method", method);
@@ -521,17 +685,19 @@ public class DAppBrowserPlugin extends Plugin {
         });
         
         builder.setNegativeButton("Reject", (dialog, which) -> {
-            sendErrorResponse(id, "User rejected");
+            Log.d(TAG, "User rejected sign request, id: " + id);
+            sendErrorToWebView(id, "User rejected the request");
         });
         
         builder.setCancelable(false);
         builder.show();
     }
     
-    private void sendErrorResponse(int id, String error) {
+    private void sendErrorToWebView(int id, String error) {
         if (dappWebView != null) {
             getActivity().runOnUiThread(() -> {
-                String js = String.format("window.ethereum._handleResponse(%d, null, '%s');", id, error);
+                String escapedError = error.replace("\\", "\\\\").replace("'", "\\'");
+                String js = String.format("if(window.ethereum) window.ethereum._handleResponse(%d, null, '%s');", id, escapedError);
                 dappWebView.evaluateJavascript(js, null);
             });
         }
